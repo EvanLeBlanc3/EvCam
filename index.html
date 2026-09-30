@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EvCam">
+<meta name="theme-color" content="#14100c">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>EvCam</title>
+<style>
+:root{--acc:#ff9f43;--acc2:#ffc078;--bg:#14100c;--txt:#f6ede4;--mut:#b9a896;--st:0px;--sb:0px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#000;color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;touch-action:manipulation}
+button{font-family:inherit;cursor:pointer}
+#app{position:fixed;left:50%;top:50%;width:100vw;height:100vh;transform:translate(-50%,-50%);display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
+#top{padding:calc(var(--st) + 6px) 12px 6px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex:0 0 auto}
+.ib{width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:var(--txt);display:flex;align-items:center;justify-content:center;padding:0;position:relative}
+.ib svg{width:21px;height:21px}
+.ib.on{background:var(--acc);color:#2a1a0a}
+.ib.off{opacity:.35}
+.tag{position:absolute;bottom:-3px;right:-4px;background:var(--acc2);color:#2a1a0a;border-radius:8px;font-size:10px;font-weight:800;padding:1px 4px;display:none}
+.chip{height:32px;border-radius:16px;padding:0 12px;border:1px solid rgba(255,159,67,.55);background:rgba(255,159,67,.12);color:var(--acc2);font-weight:800;font-size:12px;letter-spacing:.4px;white-space:nowrap}
+#vf{flex:1 1 auto;position:relative;overflow:hidden;background:#000;min-height:0;touch-action:none}
+#frame{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+#view{width:100%;height:100%;display:block}
+#grid{position:absolute;inset:0;pointer-events:none;display:none;
+background-image:linear-gradient(to right,transparent calc(33.333% - .5px),rgba(255,255,255,.4) calc(33.333% - .5px),rgba(255,255,255,.4) calc(33.333% + .5px),transparent calc(33.333% + .5px),transparent calc(66.666% - .5px),rgba(255,255,255,.4) calc(66.666% - .5px),rgba(255,255,255,.4) calc(66.666% + .5px),transparent calc(66.666% + .5px)),
+linear-gradient(to bottom,transparent calc(33.333% - .5px),rgba(255,255,255,.4) calc(33.333% - .5px),rgba(255,255,255,.4) calc(33.333% + .5px),transparent calc(33.333% + .5px),transparent calc(66.666% - .5px),rgba(255,255,255,.4) calc(66.666% - .5px),rgba(255,255,255,.4) calc(66.666% + .5px),transparent calc(66.666% + .5px))}
+body.grid #grid{display:block}
+.ov{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+#count{font-size:120px;font-weight:800;color:#fff;display:none}
+#fname{font-size:30px;font-weight:800;color:#fff;opacity:0;transition:opacity .35s;white-space:nowrap}
+#fname small{display:block;font-size:13px;font-weight:600;color:var(--acc2);margin-top:2px}
+#hint{top:14px;transform:translateX(-50%);background:rgba(0,0,0,.55);padding:6px 12px;border-radius:14px;font-size:13px;font-weight:700;display:none}
+#camErr{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;gap:14px;color:var(--mut);font-size:15px;line-height:1.4}
+#camErr b{color:var(--txt);font-size:20px}
+.pill{border:0;border-radius:22px;padding:12px 22px;font-weight:800;font-size:15px;background:linear-gradient(135deg,#ffc078,#ff8a3d);color:#2a1a0a}
+#controls{flex:0 0 auto;background:linear-gradient(#1a140f,#14100c);padding-bottom:calc(var(--sb) + 8px)}
+#intRow{display:flex;align-items:center;gap:10px;padding:6px 16px 0;font-size:12px;color:var(--mut);font-weight:600}
+#intVal{width:34px;text-align:right;color:var(--acc2)}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:28px;background:transparent;margin:0;min-width:0}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(to right,var(--acc) var(--p,50%),rgba(255,255,255,.18) var(--p,50%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;margin-top:-9px;box-shadow:0 1px 5px rgba(0,0,0,.5)}
+#cats{display:flex;gap:4px;overflow-x:auto;padding:4px 10px;scrollbar-width:none}
+#cats::-webkit-scrollbar,#strip::-webkit-scrollbar{display:none}
+.cat{flex:0 0 auto;border:0;background:transparent;color:var(--mut);font-size:13px;font-weight:700;padding:6px 11px;border-radius:14px}
+.cat.on{background:rgba(255,159,67,.2);color:var(--acc2)}
+#strip{display:flex;gap:9px;overflow-x:auto;padding:4px 12px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.f{flex:0 0 auto;width:64px;border:0;background:none;color:var(--mut);padding:0;font-size:10.5px;font-weight:600;text-align:center}
+.th{width:64px;height:64px;border-radius:14px;overflow:hidden;background:#2a2019;border:2.5px solid transparent;margin-bottom:3px}
+.th img{width:100%;height:100%;object-fit:cover;display:block}
+.f.on .th{border-color:var(--acc)}
+.f.on{color:var(--txt)}
+.f span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{display:flex;align-items:center;justify-content:space-around;padding:6px 8px 0;min-height:86px}
+#rbar,#rstat{display:none}
+body.review #bar{display:none}
+body.review #rbar{display:flex}
+body.review #rstat{display:block}
+#rstat{text-align:center;font-size:12px;color:var(--acc2);font-weight:700;padding-top:4px;height:20px}
+#shutter{width:78px;height:78px;border-radius:50%;border:4px solid #fff;background:transparent;padding:4px}
+#shutter i{display:block;width:100%;height:100%;border-radius:50%;background:linear-gradient(135deg,#ffc078,#ff8a3d);transition:transform .1s}
+#shutter:active i{transform:scale(.86)}
+.bb{width:52px;height:52px;border-radius:50%;border:0;background:rgba(255,255,255,.1);color:var(--txt);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;font-weight:800;gap:1px;padding:0;position:relative}
+.bb svg{width:22px;height:22px}
+.bb .dot{position:absolute;top:6px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--acc);display:none}
+.bb.has .dot{display:block}
+#saveBtn{height:58px;padding:0 30px;border-radius:29px;border:0;background:linear-gradient(135deg,#ffc078,#ff8a3d);color:#2a1a0a;font-weight:800;font-size:17px;display:flex;align-items:center;gap:8px}
+#saveBtn svg{width:22px;height:22px}
+#saveBtn:disabled{opacity:.45}
+#adj{position:absolute;left:0;right:0;bottom:0;background:rgba(24,18,13,.97);border-radius:22px 22px 0 0;transform:translateY(105%);transition:transform .25s ease;padding:10px 16px calc(var(--sb) + 12px);max-height:62%;display:flex;flex-direction:column;z-index:20;box-shadow:0 -8px 30px rgba(0,0,0,.5)}
+#adj.open{transform:none}
+#adjHead{display:flex;align-items:center;justify-content:space-between;padding-bottom:6px}
+#adjHead b{font-size:17px}
+#adjHead div{display:flex;gap:6px}
+.sb{border:0;border-radius:16px;padding:7px 12px;font-weight:800;font-size:13px;background:rgba(255,255,255,.1);color:var(--txt)}
+.sb.acc{background:var(--acc);color:#2a1a0a}
+#adjList{overflow-y:auto;-webkit-overflow-scrolling:touch}
+.ar{display:grid;grid-template-columns:96px 1fr 34px;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--mut)}
+.ar span:last-child{text-align:right;color:var(--acc2)}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:50}
+#toast{position:absolute;left:50%;top:calc(var(--st) + 60px);transform:translate(-50%,-10px);background:rgba(30,22,16,.95);border:1px solid rgba(255,159,67,.4);color:var(--txt);padding:10px 16px;border-radius:16px;font-size:14px;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;z-index:60;max-width:88%;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#fb{position:absolute;inset:0;background:rgba(0,0,0,.94);z-index:70;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:calc(var(--st) + 20px) 20px calc(var(--sb) + 20px);text-align:center}
+#fb img{max-width:100%;max-height:70%;border-radius:10px;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto}
+#fb p{margin:0;font-weight:700;color:var(--acc2)}
+#video{position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none}
+.hidden-input{position:fixed;left:-999px;top:-999px;opacity:0}
+.ri{transition:transform .3s}
+button{transition:scale .12s ease,filter .12s ease,background-color .15s ease,color .15s ease}
+button.pressed{scale:.88;filter:brightness(1.45)}
+.ib.pressed,.bb.pressed{background:rgba(255,159,67,.35)}
+.bb.on{background:var(--acc);color:#2a1a0a}
+.chip.pressed{background:rgba(255,159,67,.4)}
+.f.pressed .th{border-color:var(--acc2)}
+.cat.pressed{background:rgba(255,159,67,.35);color:var(--acc2)}
+#shutter.pressed i{transform:scale(.86)}
+#saveBtn.pressed{filter:brightness(1.2)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <button class="ib ri" id="bFlash" aria-label="Flash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></button>
+    <button class="ib ri" id="bTimer" aria-label="Timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg><span class="tag" id="timerTag"></span></button>
+    <button class="chip" id="bQual">MAX</button>
+    <button class="ib ri" id="bGrid" aria-label="Grid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg></button>
+    <button class="ib ri" id="bSound" aria-label="Sound"></button>
+  </header>
+
+  <main id="vf">
+    <div id="frame"><canvas id="view"></canvas><div id="grid"></div></div>
+    <div class="ov" id="count"></div>
+    <div class="ov" id="fname"></div>
+    <div class="ov" id="hint">Original</div>
+    <div id="camErr">
+      <b>📷 The camera is playing hard to get</b>
+      <span id="camErrMsg">EvCam needs camera permission to show live filters.</span>
+      <button class="pill" id="bRetry">Try again</button>
+      <span style="font-size:13px">You can still use <b style="font-size:13px">Library</b> or <b style="font-size:13px">HD</b> below.</span>
+    </div>
+  </main>
+
+  <section id="controls">
+    <div id="intRow"><span>Intensity</span><input type="range" id="intensity" min="0" max="100" value="100"><span id="intVal">100</span></div>
+    <div id="cats"></div>
+    <div id="strip"></div>
+    <div id="rstat"></div>
+    <div class="bar" id="bar">
+      <button class="bb ri" id="bImport" aria-label="Import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m21 15-5-5L5 21"/></svg>Library</button>
+      <button class="bb ri" id="bAdj" aria-label="Adjust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>Adjust<i class="dot"></i></button>
+      <button id="shutter" aria-label="Take photo"><i></i></button>
+      <button class="bb ri" id="bHD" aria-label="HD photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg>HD</button>
+      <button class="bb ri" id="bFlip" aria-label="Flip camera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16V8a2 2 0 0 0-2-2h-2l-2-2h-4L8 6H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2z"/><path d="M9 12.5a3 3 0 0 1 5.2-2M15 11.5a3 3 0 0 1-5.2 2M14.5 8.5v2h-2M9.5 15.5v-2h2"/></svg>Flip</button>
+    </div>
+    <div class="bar" id="rbar">
+      <button class="bb ri" id="bRetake" aria-label="Retake"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>Retake</button>
+      <button id="saveBtn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-5-5m5 5 5-5M5 21h14"/></svg>Save</button>
+      <button class="bb ri" id="bAdj2" aria-label="Adjust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>Adjust<i class="dot"></i></button>
+    </div>
+  </section>
+
+  <div id="adj">
+    <div id="adjHead"><b>Adjust ✨</b><div><button class="sb" id="bAuto">Auto ✨</button><button class="sb" id="bReset">Reset</button><button class="sb acc" id="bDone">Done</button></div></div>
+    <div id="adjList"></div>
+  </div>
+
+  <div id="flash"></div>
+  <div id="toast"></div>
+  <div id="fb"><p>Press &amp; hold the photo → “Save to Photos”</p><img id="fbImg" alt="Your photo"><button class="pill" id="fbDone">Done</button></div>
+</div>
+
+<video id="video" playsinline muted autoplay></video>
+<input type="file" id="fileImport" class="hidden-input" accept="image/*">
+<input type="file" id="fileHD" class="hidden-input" accept="image/*" capture="user">
+<canvas id="thumbCanvas" width="112" height="112" style="display:none"></canvas>
+
+<script>
+'use strict';
+/* ============================================================
+   EvCam — live filter camera (PWA)
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const Z3 = [0,0,0];
+
+/* ---------------- 50 filters (+ Original) ---------------- */
+const CATS = ['Selfie','Skin','Fitness','Features','Clarity','Warm','Cool','Vintage','B&W','Moody','Fun','Landscape','Nature','Color Pop'];
+const F = (n,c,p) => ({n,c,p});
+const FILTERS = [
+  F('Original','Selfie',{}),
+  // Selfie & skin (10)
+  F('Glow Up','Selfie',{smooth:.55,bri:.08,vib:.15,temp:.1,glow:.15,sharp:.12}),
+  F('Porcelain','Selfie',{smooth:.75,bri:.12,sat:-.12,hi:-.1,glow:.12,temp:-.05}),
+  F('Soft Focus','Selfie',{smooth:.5,glow:.4,con:-.08}),
+  F('Peach Fuzz','Selfie',{smooth:.45,temp:.22,vib:.1,bri:.05,hT:[.04,.015,-.02]}),
+  F('Rosy','Selfie',{smooth:.45,tint:-.2,bri:.06,vib:.08,hT:[.04,-.01,.02]}),
+  F('Golden Selfie','Selfie',{smooth:.4,temp:.4,leak:.25,sh:.15,vib:.1}),
+  F('Dewy','Selfie',{smooth:.5,hi:.15,glow:.3,sat:.05,bri:.04}),
+  F('Airbrush','Selfie',{smooth:1,bri:.06,sharp:.15,vib:.05}),
+  F('Natural Beauty','Selfie',{smooth:.3,vib:.12,con:.06,sharp:.12}),
+  F('Bronzed','Selfie',{temp:.3,con:.14,sat:.1,smooth:.35,exp:-.05,hT:[.03,.01,-.02]}),
+  // Skin enhance (9)
+  F('Flawless','Skin',{smooth:.85,vib:.1,bri:.05,sharp:.25,clar:.1}),
+  F('Bronze Goddess','Skin',{tan:.8,smooth:.4,con:.12,vib:.1,glow:.12,hT:[.03,.015,-.02]}),
+  F('Beach Tan','Skin',{tan:.6,temp:.15,bri:.05,vib:.15,smooth:.3}),
+  F('Healthy Flush','Skin',{blush:.7,smooth:.4,vib:.1,bri:.04}),
+  F('Even Tone','Skin',{smooth:.6,sat:-.06,hi:-.15,sh:.2,blush:.2}),
+  F('Matte Finish','Skin',{smooth:.55,hi:-.35,con:.05,sat:-.05,sharp:.15}),
+  F('Lit From Within','Skin',{smooth:.5,glow:.3,sh:.3,blush:.3,bri:.05}),
+  F('Spray Tan','Skin',{tan:1,con:.1,sat:.05,sharp:.15}),
+  F('Well Rested','Skin',{smooth:.55,sh:.4,bri:.06,blush:.25,temp:.05}),
+  // Fitness / muscle definition (8)
+  F('Shredded','Fitness',{clar:.8,con:.2,sharp:.4,sh:-.1,vig:.2}),
+  F('Gym Mirror','Fitness',{clar:.55,con:.15,sharp:.35,vib:.12,tan:.3}),
+  F('Chiseled','Fitness',{clar:.7,con:.25,hi:-.2,sat:-.1,sharp:.45}),
+  F('The Pump','Fitness',{clar:.6,tan:.5,sat:.12,con:.22,sharp:.3}),
+  F('Beast Mode','Fitness',{bw:1,clar:.9,con:.45,sharp:.5,vig:.45,grain:.15}),
+  F('Swole Gold','Fitness',{clar:.6,tan:.6,temp:.25,con:.18,leak:.15,sharp:.3}),
+  F('Vascular','Fitness',{clar:1,sharp:.7,con:.2,sat:-.08}),
+  F('Stage Ready','Fitness',{tan:.9,clar:.75,con:.3,hi:-.2,sat:.1,sharp:.4,vig:.3}),
+  // Features (8)
+  F('Eye Pop','Features',{sharp:.7,clar:.25,smooth:.35,vib:.15,sh:.15}),
+  F('Jawline','Features',{clar:.45,con:.2,sh:-.15,hi:.08,sharp:.35,vig:.2}),
+  F('Sharp Features','Features',{sharp:.8,clar:.4,smooth:.3,con:.1}),
+  F('Portrait Pro','Features',{smooth:.5,sharp:.45,clar:.2,vig:.25,vib:.12,blush:.15}),
+  F('Studio Light','Features',{bri:.1,hi:.1,con:.12,smooth:.45,sharp:.3,sat:-.05}),
+  F('Magazine Cover','Features',{smooth:.7,sharp:.5,clar:.3,con:.15,vib:.2,glow:.1}),
+  F('Headshot','Features',{smooth:.4,sharp:.4,clar:.2,sh:.2,con:.08,temp:.05}),
+  F('Red Carpet','Features',{smooth:.6,tan:.35,glow:.2,con:.15,sharp:.35,vig:.3,hT:[.03,.02,-.01]}),
+  // Clarity (6)
+  F('Crisp','Clarity',{con:.15,sharp:.5}),
+  F('HD Pop','Clarity',{con:.2,sat:.15,sharp:.6,sh:.15}),
+  F('Punch','Clarity',{con:.3,vib:.3}),
+  F('Clarity+','Clarity',{sharp:.8,con:.1,hi:-.2,sh:.25}),
+  F('Vivid','Clarity',{sat:.35,con:.15}),
+  F('HDR-ish','Clarity',{hi:-.45,sh:.45,sharp:.5,vib:.2,con:.12}),
+  // Warm (6)
+  F('Sunkissed','Warm',{temp:.35,bri:.05,vib:.1}),
+  F('Honey','Warm',{temp:.5,tint:.05,sat:.08,fade:.12,hT:[.03,.02,-.03]}),
+  F('Toasty','Warm',{temp:.6,con:.1,vig:.25}),
+  F('Amber Hour','Warm',{temp:.45,leak:.4,sh:.1}),
+  F('Terracotta','Warm',{temp:.35,sat:-.08,con:.12,hT:[.05,0,-.03],sT:[.02,-.01,-.02]}),
+  F('Cozy Cabin','Warm',{temp:.3,fade:.12,vig:.3,con:.05,sT:[-.02,.03,-.01],hT:[.04,.02,-.03]}),
+  // Cool (6)
+  F('Arctic','Cool',{temp:-.45,bri:.05,sat:-.1}),
+  F('Blue Hour','Cool',{temp:-.35,con:.1,exp:-.05,sT:[-.03,0,.06]}),
+  F('Mint','Cool',{temp:-.15,tint:.15,fade:.1,bri:.06}),
+  F('Glacier','Cool',{temp:-.3,hi:.1,sat:-.2,con:.12}),
+  F('Moonlight','Cool',{temp:-.4,sat:-.35,exp:-.12,vig:.35,sT:[-.02,0,.04]}),
+  F('Nordic','Cool',{temp:-.2,fade:.18,sat:-.25,con:-.05}),
+  // Vintage & film (9)
+  F('Retro 70s','Vintage',{temp:.3,fade:.25,sat:-.15,grain:.35,vig:.3,sT:[.02,.01,-.03],hT:[.03,.02,-.04]}),
+  F('Instant Film','Vintage',{fade:.3,temp:.15,tint:.05,con:-.1,vig:.15,hT:[.03,.03,-.03],sT:[-.02,.02,.03]}),
+  F('Kodak-ish','Vintage',{con:.25,sat:.2,temp:.12,sT:[0,-.01,-.02],hT:[.03,.01,-.02]}),
+  F('Faded Film','Vintage',{fade:.45,con:-.15,sat:-.15,grain:.25}),
+  F('Super 8','Vintage',{temp:.35,grain:.6,vig:.45,leak:.25,fade:.2,rgb:.3}),
+  F('Sepia','Vintage',{sepia:.85,fade:.1,vig:.25,con:.05}),
+  F('Lomo','Vintage',{con:.35,sat:.3,vig:.7,hT:[.03,.03,-.03],sT:[-.02,0,.04]}),
+  F('Cross Process','Vintage',{con:.2,sat:.15,sT:[-.04,.04,.07],hT:[.05,.05,-.06]}),
+  F('Disposable','Vintage',{exp:.05,con:.15,sat:.15,grain:.45,temp:.1,vig:.35,rgb:.2}),
+  // Black & white (5)
+  F('Noir','B&W',{bw:1,con:.45,vig:.45,grain:.2}),
+  F('Silver','B&W',{bw:1,con:.1,fade:.12,bri:.05,hT:[0,0,.01]}),
+  F('Classic B&W','B&W',{bw:1,con:.18}),
+  F('Soft Mono','B&W',{bw:1,con:-.1,glow:.25,smooth:.35}),
+  F('Grit','B&W',{bw:1,sharp:.8,con:.35,grain:.5}),
+  // Moody (4)
+  F('Moody','Moody',{exp:-.1,sat:-.2,con:.15,sh:-.1,fade:.15,vig:.35,sT:[-.02,.01,.03]}),
+  F('Dramatic','Moody',{con:.4,hi:-.25,sh:-.1,sat:-.1,vig:.4,sharp:.3}),
+  F('Blockbuster','Moody',{con:.18,vib:.15,vig:.2,sT:[-.05,.02,.06],hT:[.06,.02,-.05]}),
+  F('Midnight','Moody',{exp:-.15,temp:-.2,con:.2,sat:-.15,vig:.5,sT:[-.02,0,.05]}),
+  // Fun (4)
+  F('Dreamy Pastel','Fun',{fade:.3,sat:-.1,bri:.1,glow:.35,tint:-.05,hue:.03}),
+  F('Pop Art','Fun',{poster:.7,sat:.6,con:.3}),
+  F('Vaporwave','Fun',{sat:.3,rgb:.5,hue:-.05,sT:[.05,-.03,.08],hT:[-.02,.04,.05]}),
+  F('Neon Night','Fun',{con:.3,sat:.5,exp:-.05,glow:.3,sT:[.06,-.03,.07],hT:[-.03,.04,.05]}),
+  // Landscape (9)
+  F('Epic Sky','Landscape',{sky:.9,dehaze:.4,hi:-.35,con:.15,clar:.3,vig:.2}),
+  F('Polarizer','Landscape',{sky:1,fol:.3,dehaze:.3,con:.1,sat:.05}),
+  F('Emerald Valley','Landscape',{fol:1,sky:.3,con:.12,clar:.25,sh:.15}),
+  F('Golden Hour Glow','Landscape',{sun:.8,temp:.35,leak:.3,sh:.2,vib:.15,glow:.12}),
+  F('Alpine','Landscape',{sky:.7,dehaze:.5,temp:-.1,clar:.35,con:.12,bri:.04}),
+  F('Desert Heat','Landscape',{sun:.9,temp:.4,con:.2,dehaze:.2,sky:.3,hT:[.03,.01,-.03]}),
+  F('Ocean Blue','Landscape',{sky:1,temp:-.15,vib:.2,clar:.2,sT:[-.02,.01,.04]}),
+  F('Autumn Blaze','Landscape',{sun:1,temp:.25,sat:.15,con:.15,hue:-.02}),
+  F('Misty Morning','Landscape',{fade:.3,glow:.35,temp:-.1,sat:-.15,con:-.1,bri:.08}),
+  // Nature & Macro (8)
+  F('Macro Pop','Nature',{clar:.5,sharp:.6,vib:.35,con:.15,vig:.3}),
+  F('Petal Pop','Nature',{sun:.6,vib:.35,glow:.15,sharp:.35,tint:-.1,vig:.2}),
+  F('Dewdrop','Nature',{sharp:.7,clar:.3,hi:.15,temp:-.12,vib:.2,glow:.1}),
+  F('Botanical','Nature',{fol:.9,clar:.3,sharp:.35,sh:.2,temp:.05}),
+  F('Tropical','Nature',{fol:.8,sky:.7,sun:.5,con:.15,bri:.05}),
+  F('Butterfly','Nature',{vib:.5,sun:.4,sky:.4,sharp:.45,clar:.3,vig:.35}),
+  F('Mossy Forest','Nature',{fol:.7,exp:-.08,fade:.1,vig:.4,glow:.12,sT:[-.02,.02,0]}),
+  F('Citrus Burst','Nature',{sun:.8,fol:.5,bri:.08,con:.12,hue:.015,vib:.2}),
+  // Color Pop (8)
+  F('Candy Land','Color Pop',{sat:.45,bri:.1,glow:.2,tint:-.1,hT:[.04,0,.04]}),
+  F('Sherbet','Color Pop',{fade:.2,sat:.2,bri:.1,sT:[.05,0,.04],hT:[.04,.04,-.02]}),
+  F('Electric','Color Pop',{sat:.6,con:.35,sky:.5,clar:.25,sT:[-.02,-.02,.06]}),
+  F('Rainbow Boost','Color Pop',{sat:.5,vib:.3,fol:.4,sky:.4,sun:.4,con:.1}),
+  F('Cotton Candy','Color Pop',{bri:.12,fade:.15,glow:.3,sat:.1,sT:[.02,-.01,.06],hT:[.06,.02,.03]}),
+  F('Tie-Dye','Color Pop',{hue:.12,sat:.55,con:.15,glow:.1}),
+  F('Sunset Pop','Color Pop',{sun:1,sat:.25,con:.18,leak:.25,sT:[.02,-.02,.06]}),
+  F('Aurora','Color Pop',{fol:.7,sky:.7,exp:-.1,glow:.3,vig:.35,sT:[-.02,.02,.06],hT:[.02,.05,.02]}),
+];
+
+/* Manual adjustments (slider value × scale = shader units) */
+const ADJ = [
+  {k:'bri',n:'Brightness',min:-100,s:.004},
+  {k:'con',n:'Contrast',min:-100,s:.004},
+  {k:'sat',n:'Saturation',min:-100,s:.008},
+  {k:'temp',n:'Warmth',min:-100,s:.006},
+  {k:'tint',n:'Tint',min:-100,s:.004},
+  {k:'hi',n:'Highlights',min:-100,s:.006},
+  {k:'sh',n:'Shadows',min:-100,s:.006},
+  {k:'smooth',n:'Skin Smooth',min:0,s:.01},
+  {k:'tan',n:'Skin Tan',min:0,s:.01},
+  {k:'blush',n:'Skin Glow',min:0,s:.008},
+  {k:'clar',n:'Definition',min:0,s:.01},
+  {k:'dehaze',n:'Dehaze',min:0,s:.01},
+  {k:'fol',n:'Greens Pop',min:0,s:.012},
+  {k:'sky',n:'Blues Pop',min:0,s:.012},
+  {k:'sun',n:'Warm Pop',min:0,s:.012},
+  {k:'sharp',n:'Sharpen',min:0,s:.01},
+  {k:'glow',n:'Glow',min:0,s:.006},
+  {k:'vig',n:'Vignette',min:0,s:.008},
+  {k:'fade',n:'Fade',min:0,s:.005},
+  {k:'grain',n:'Grain',min:0,s:.007},
+];
+const SK = ['fol','sky','sun','dehaze','clar','tan','blush','exp','bri','con','sat','vib','temp','tint','hi','sh','fade','vig','grain','sharp','smooth','bw','sepia','hue','glow','leak','rgb','poster'];
+
+/* ---------------- WebGL shaders ---------------- */
+const VS = `attribute vec2 a_pos;varying vec2 v_p;
+void main(){v_p=vec2(a_pos.x*0.5+0.5,0.5-a_pos.y*0.5);gl_Position=vec4(a_pos,0.0,1.0);}`;
+const FS = `precision highp float;
+varying vec2 v_p;
+uniform sampler2D u_tex;
+uniform vec4 u_crop;
+uniform float u_mirror,u_gscale,u_seed;
+uniform vec2 u_ref,u_out;
+uniform float u_fol,u_sky,u_sun,u_dehaze,u_clar,u_tan,u_blush,u_exp,u_bri,u_con,u_sat,u_vib,u_temp,u_tint,u_hi,u_sh,u_fade,u_vig,u_grain,u_sharp,u_smooth,u_bw,u_sepia,u_hue,u_glow,u_leak,u_rgb,u_poster;
+uniform vec3 u_sT,u_hT;
+vec3 T(vec2 uv){return texture2D(u_tex,clamp(uv,vec2(0.0),vec2(1.0))).rgb;}
+float L(vec3 c){return dot(c,vec3(0.2126,0.7152,0.0722));}
+float H(vec2 p){vec3 p3=fract(vec3(p.xyx)*0.1031);p3+=dot(p3,p3.yzx+33.33);return fract((p3.x+p3.y)*p3.z);}
+void main(){
+  vec2 p=v_p;
+  if(u_mirror>0.5)p.x=1.0-p.x;
+  vec2 uv=u_crop.xy+p*u_crop.zw;
+  vec3 raw=T(uv);
+  vec3 c=raw;
+  if(u_rgb>0.001){vec2 o=vec2(u_ref.x,0.0)*u_rgb*6.0*(0.4+length(v_p-0.5)*1.6);c.r=T(uv+o).r;c.b=T(uv-o).b;}
+  float m=0.0;
+  if(u_smooth>0.001||u_tan>0.001||u_blush>0.001){
+    float cb=-0.1687*raw.r-0.3313*raw.g+0.5*raw.b;
+    float cr=0.5*raw.r-0.4187*raw.g-0.0813*raw.b;
+    m=smoothstep(-0.26,-0.17,cb)*(1.0-smoothstep(-0.01,0.05,cb))*smoothstep(0.0,0.045,cr)*(1.0-smoothstep(0.17,0.24,cr));
+  }
+  if(u_smooth>0.001){
+    vec3 sum=c;float ws=1.0;float rs=0.6+u_smooth*0.9;
+    for(int i=0;i<16;i++){
+      float fi=float(i);float od=mod(fi,2.0);
+      float a=fi*0.3927+od*0.2;
+      float r=(od<0.5?2.5:5.5)*rs;
+      vec3 s=T(uv+vec2(cos(a),sin(a))*r*u_ref);
+      vec3 d=s-c;float w=exp(-dot(d,d)*60.0);
+      sum+=s*w;ws+=w;
+    }
+    vec3 b=sum/ws;
+    c=mix(c,b,clamp(u_smooth*(0.3+0.7*m),0.0,1.0));
+  }
+  if(u_sharp>0.001){
+    vec2 o=u_out*1.25;
+    vec3 bl=(T(uv+vec2(o.x,0.0))+T(uv-vec2(o.x,0.0))+T(uv+vec2(0.0,o.y))+T(uv-vec2(0.0,o.y)))*0.25;
+    c+=(raw-bl)*u_sharp*1.6;
+  }
+  if(u_clar>0.001){
+    vec3 bl=vec3(0.0);
+    for(int i=0;i<16;i++){
+      float fi=float(i);float big=step(8.0,fi);
+      float a=fi*0.7854+big*0.3927;
+      bl+=T(uv+vec2(cos(a),sin(a))*mix(8.0,17.0,big)*u_ref);
+    }
+    bl/=16.0;
+    float lc=L(c);float d=lc-L(bl);
+    float w=1.0-pow(abs(clamp(lc,0.0,1.0)*2.0-1.0),2.0);
+    c+=c/max(lc,0.04)*d*u_clar*1.15*w;
+  }
+  if(u_glow>0.001){
+    vec3 g=vec3(0.0);
+    for(int i=0;i<12;i++){
+      float fi=float(i);float big=step(6.0,fi);
+      float a=fi*1.0472+big*0.5236;
+      g+=T(uv+vec2(cos(a),sin(a))*mix(9.0,18.0,big)*u_ref);
+    }
+    g/=12.0;
+    c=1.0-(1.0-clamp(c,0.0,1.0))*(1.0-g*u_glow*0.55);
+  }
+  c*=exp2(u_exp);
+  if(u_dehaze>0.001){float hz=u_dehaze*0.1;c=(c-hz)/(1.0-hz*1.3);c=mix(vec3(L(c)),c,1.0+u_dehaze*0.25);}
+  if(u_tan>0.001){vec3 tc=clamp(c,0.0,1.0);vec3 tn=pow(tc,vec3(1.08,1.22,1.45))*vec3(1.04,1.0,0.97);c=mix(c,tn,clamp(m*u_tan,0.0,1.0));}
+  if(u_blush>0.001){c=mix(c,c*vec3(1.07,0.95,0.99)+vec3(0.025,0.0,0.012),clamp(m*u_blush,0.0,1.0));}
+  c*=vec3(1.0+u_temp*0.16,1.0+u_tint*0.1,1.0-u_temp*0.16);
+  float l=L(c);
+  c+=(c*0.6+0.06)*u_sh*(1.0-l)*(1.0-l);
+  c+=c*u_hi*0.45*l*l;
+  c=clamp(c,0.0,1.0);
+  if(u_con>0.0)c=mix(c,c*c*(3.0-2.0*c),min(u_con*1.6,1.0));
+  else c=(c-0.5)*(1.0+u_con)+0.5;
+  c=pow(max(c,0.0),vec3(1.0/max(1.0+u_bri,0.2)));
+  l=L(c);
+  float mx=max(c.r,max(c.g,c.b)),mn=min(c.r,min(c.g,c.b));
+  c=mix(vec3(l),c,1.0+u_vib*(1.0-(mx-mn))*1.2);
+  c=mix(vec3(l),c,1.0+u_sat);
+  if(u_fol>0.001||u_sky>0.001||u_sun>0.001){
+    vec3 q=clamp(c,0.0,1.0);
+    float qx=max(q.r,max(q.g,q.b)),qn=min(q.r,min(q.g,q.b)),dl=qx-qn,hh=0.0;
+    if(dl>0.0001){
+      if(qx==q.r)hh=mod((q.g-q.b)/dl,6.0);
+      else if(qx==q.g)hh=(q.b-q.r)/dl+2.0;
+      else hh=(q.r-q.g)/dl+4.0;
+    }
+    hh/=6.0;
+    float dg=abs(hh-0.30);dg=min(dg,1.0-dg);
+    float db=abs(hh-0.57);db=min(db,1.0-db);
+    float ds=abs(hh-0.06);ds=min(ds,1.0-ds);
+    float wg=1.0-smoothstep(0.07,0.15,dg);
+    float wb=1.0-smoothstep(0.06,0.13,db);
+    float wsn=1.0-smoothstep(0.05,0.12,ds);
+    float gate=smoothstep(0.03,0.15,dl);
+    float lq=L(q);
+    c=mix(vec3(lq),c,1.0+(u_fol*wg+u_sky*wb+u_sun*wsn)*gate);
+    c*=1.0-u_sky*wb*gate*0.18;
+    c*=1.0+u_sun*wsn*gate*0.08+u_fol*wg*gate*0.04;
+  }
+  if(abs(u_hue)>0.001){
+    float Y=dot(c,vec3(0.299,0.587,0.114));float I=dot(c,vec3(0.596,-0.274,-0.322));float Q=dot(c,vec3(0.211,-0.523,0.312));
+    float h=u_hue*3.14159;float cs=cos(h),sn=sin(h);float I2=I*cs-Q*sn;float Q2=I*sn+Q*cs;
+    c=vec3(Y+0.956*I2+0.621*Q2,Y-0.272*I2-0.647*Q2,Y-1.106*I2+1.703*Q2);
+  }
+  if(u_sepia>0.001){
+    vec3 sp=vec3(dot(c,vec3(0.393,0.769,0.189)),dot(c,vec3(0.349,0.686,0.168)),dot(c,vec3(0.272,0.534,0.131)));
+    c=mix(c,sp,clamp(u_sepia,0.0,1.0));
+  }
+  if(u_bw>0.001){float g2=dot(c,vec3(0.3,0.59,0.11));c=mix(c,vec3(g2),clamp(u_bw,0.0,1.0));}
+  c=clamp(c,0.0,1.0);
+  l=L(c);
+  c+=u_sT*(1.0-l)*(1.0-l)*2.0+u_hT*l*l*2.0;
+  c=c*(1.0-u_fade*0.22)+u_fade*0.13;
+  if(u_poster>0.001){float lv=mix(20.0,4.0,clamp(u_poster,0.0,1.0));c=floor(clamp(c,0.0,1.0)*lv+0.5)/lv;}
+  if(u_leak>0.001){
+    float d1=distance(v_p,vec2(1.05,-0.05));float d2=distance(v_p,vec2(-0.1,1.1));
+    c+=u_leak*(vec3(1.0,0.45,0.12)*(1.0-smoothstep(0.0,0.85,d1))*0.55+vec3(1.0,0.2,0.3)*(1.0-smoothstep(0.0,0.6,d2))*0.3);
+  }
+  if(abs(u_vig)>0.001){float d=length(v_p-0.5)*1.4142;c*=1.0-u_vig*smoothstep(0.3,1.05,d)*0.9;}
+  if(u_grain>0.001){
+    vec2 gp=floor(gl_FragCoord.xy/u_gscale);
+    float n=H(gp+u_seed*vec2(37.0,17.0))-0.5;
+    c+=n*u_grain*0.16*(1.0-0.6*abs(L(c)-0.45));
+  }
+  gl_FragColor=vec4(clamp(c,0.0,1.0),1.0);
+}`;
+
+class FX {
+  constructor(canvas, preserve){
+    this.c = canvas;
+    const gl = this.gl = canvas.getContext('webgl',{alpha:false,antialias:false,depth:false,stencil:false,premultipliedAlpha:false,preserveDrawingBuffer:!!preserve});
+    if(!gl) throw new Error('WebGL unavailable');
+    const mk=(t,s)=>{const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));return o;};
+    const pr=gl.createProgram();
+    gl.attachShader(pr,mk(gl.VERTEX_SHADER,VS));gl.attachShader(pr,mk(gl.FRAGMENT_SHADER,FS));gl.linkProgram(pr);
+    if(!gl.getProgramParameter(pr,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(pr));
+    gl.useProgram(pr);
+    const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+    const loc=gl.getAttribLocation(pr,'a_pos');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+    this.t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,this.t);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
+    this.u={};
+    const n=gl.getProgramParameter(pr,gl.ACTIVE_UNIFORMS);
+    for(let i=0;i<n;i++){const info=gl.getActiveUniform(pr,i);this.u[info.name]=gl.getUniformLocation(pr,info.name);}
+    if(this.u.u_tex)gl.uniform1i(this.u.u_tex,0);
+    this.maxTex=gl.getParameter(gl.MAX_TEXTURE_SIZE);
+  }
+  setSource(src){const gl=this.gl;gl.bindTexture(gl.TEXTURE_2D,this.t);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);}
+  render(p,w,h,o={}){
+    const gl=this.gl,u=this.u,c=this.c;
+    if(c.width!==w)c.width=w;
+    if(c.height!==h)c.height=h;
+    gl.viewport(0,0,gl.drawingBufferWidth,gl.drawingBufferHeight);
+    const cr=o.crop||[0,0,1,1],Lm=Math.max(w,h);
+    const f1=(k,v)=>{if(u[k])gl.uniform1f(u[k],v);};
+    gl.uniform4f(u.u_crop,cr[0],cr[1],cr[2],cr[3]);
+    f1('u_mirror',o.mirror?1:0);
+    if(u.u_ref)gl.uniform2f(u.u_ref,cr[2]*Lm/w/1200,cr[3]*Lm/h/1200);
+    if(u.u_out)gl.uniform2f(u.u_out,cr[2]/w,cr[3]/h);
+    f1('u_gscale',Math.max(1,Lm/1400));
+    f1('u_seed',o.seed||0);
+    for(const k of SK)f1('u_'+k,p[k]||0);
+    if(u.u_sT)gl.uniform3fv(u.u_sT,p.sT||Z3);
+    if(u.u_hT)gl.uniform3fv(u.u_hT,p.hT||Z3);
+    gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  }
+}
+
+/* ---------------- State ---------------- */
+const DEF = {fi:1,k:1,adj:{},q:'max',sound:true,grid:false,timer:0,flash:false,facing:'user'};
+let S;
+try{S=Object.assign({},DEF,JSON.parse(localStorage.getItem('evcam')||localStorage.getItem('glowcam')||'{}'));}catch(e){S=Object.assign({},DEF);}
+{const i=FILTERS.findIndex(f=>f.n===S.fn);S.fi=i>=0?i:1;}
+const persist=()=>{S.fn=FILTERS[S.fi].n;try{localStorage.setItem('evcam',JSON.stringify(S));}catch(e){}};
+
+const NEUTRAL = {sT:Z3,hT:Z3};
+function adjParams(){const o={};for(const a of ADJ)o[a.k]=(S.adj[a.k]||0)*a.s;return o;}
+function compose(fi,k,adj){
+  const f=FILTERS[fi].p,o={};
+  for(const s of SK)o[s]=(f[s]||0)*k+((adj&&adj[s])||0);
+  o.sT=(f.sT||Z3).map(v=>v*k);o.hT=(f.hT||Z3).map(v=>v*k);
+  return o;
+}
+let P = null;
+let mode='live', comparing=false, rot=0, srcW=0, srcH=0, busy=false;
+let pv=null, proc=null, thumbFx=null;
+let stream=null, track=null, torchOK=false;
+let srcCanvas=null, outBlob=null, renderTok=0, fullT=0;
+const app=$('app'), vf=$('vf'), frame=$('frame'), view=$('view'), video=$('video');
+
+/* ---------------- Helpers ---------------- */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let toastT=0;
+function toast(msg,ms=2400){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),ms);}
+let fnameT=0;
+function showFname(){
+  const f=FILTERS[S.fi],el=$('fname');
+  el.innerHTML=`${f.n}<small>${S.fi===0?'no filter':f.c}</small>`;
+  el.style.opacity=1;clearTimeout(fnameT);fnameT=setTimeout(()=>el.style.opacity=0,900);
+}
+function setFill(r){const min=+r.min,max=+r.max;r.style.setProperty('--p',((r.value-min)/(max-min)*100)+'%');}
+function stamp(){const d=new Date(),z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}${z(d.getSeconds())}`;}
+
+/* ---------------- Sound ---------------- */
+let ac=null;
+function actx(){
+  if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}}
+  if(ac.state==='suspended')ac.resume();
+  return ac;
+}
+function tone(freq,dur,vol,when=0,type='sine'){
+  if(!S.sound)return;const a=actx();if(!a)return;
+  const t=a.currentTime+when,o=a.createOscillator(),g=a.createGain();
+  o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g).connect(a.destination);o.start(t);o.stop(t+dur+0.02);
+}
+function shutterSound(){
+  if(!S.sound)return;const a=actx();if(!a)return;
+  const len=Math.floor(a.sampleRate*0.09),buf=a.createBuffer(1,len,a.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<len;i++){const e=i<len*0.06?1:Math.pow(1-i/len,4);d[i]=(Math.random()*2-1)*e;}
+  [[0,.7,3200],[0.075,.45,2200]].forEach(([w,v,fq])=>{
+    const s=a.createBufferSource();s.buffer=buf;const f=a.createBiquadFilter();f.type='bandpass';f.frequency.value=fq;f.Q.value=.9;
+    const g=a.createGain();g.gain.value=v;s.connect(f).connect(g).connect(a.destination);s.start(a.currentTime+w);
+  });
+}
+const beep=(hi)=>tone(hi?1320:880,.09,.18);
+const chime=()=>{tone(660,.14,.16);tone(990,.22,.16,.11);tone(1320,.3,.12,.22);};
+
+/* ---------------- Orientation lock (portrait) ---------------- */
+let safe=null;
+function measureSafe(){
+  const d=document.createElement('div');
+  d.style.cssText='position:fixed;top:0;left:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none';
+  document.body.appendChild(d);const cs=getComputedStyle(d);
+  const r={t:parseFloat(cs.paddingTop)||0,b:parseFloat(cs.paddingBottom)||0};d.remove();return r;
+}
+function orient(){
+  const W=window.innerWidth,H=window.innerHeight;
+  let ang=(typeof window.orientation==='number')?window.orientation:(screen.orientation?screen.orientation.angle:0);
+  if(ang===270)ang=-90;
+  const land=W>H;
+  rot=(land&&(ang===90||ang===-90))?-ang:0;
+  if(!rot){safe=measureSafe();}
+  else if(!safe){safe={t:47,b:34};}
+  const s=rot?safe:(safe||{t:0,b:0});
+  document.documentElement.style.setProperty('--st',s.t+'px');
+  document.documentElement.style.setProperty('--sb',s.b+'px');
+  app.style.width=(rot?H:W)+'px';app.style.height=(rot?W:H)+'px';
+  app.style.transform=`translate(-50%,-50%) rotate(${rot}deg)`;
+  document.querySelectorAll('.ri,.th').forEach(e=>e.style.transform=rot?`rotate(${-rot}deg)`:'');
+  requestAnimationFrame(layout);
+}
+
+/* ---------------- Layout ---------------- */
+function layout(){
+  if(!srcW||!pv)return;
+  const bw=vf.clientWidth,bh=vf.clientHeight;
+  const BW=rot?bh:bw,BH=rot?bw:bh;
+  const s=Math.min(BW/srcW,BH/srcH);
+  const cw=Math.max(1,Math.round(srcW*s)),ch=Math.max(1,Math.round(srcH*s));
+  frame.style.width=cw+'px';frame.style.height=ch+'px';
+  frame.style.transform=`translate(-50%,-50%) rotate(${-rot}deg)`;
+  const dpr=Math.min(window.devicePixelRatio||1,S.q==='max'?2:1.5);
+  view.width=Math.round(cw*dpr);view.height=Math.round(ch*dpr);
+  if(mode==='review')renderReview();
+}
+
+/* ---------------- Params ---------------- */
+function refreshParams(){
+  P=compose(S.fi,S.k,adjParams());
+  if(mode==='review'){renderReview();scheduleFull();}
+}
+
+/* ---------------- Live loop ---------------- */
+function loop(t){
+  requestAnimationFrame(loop);
+  if(mode!=='live'||!pv||!video.videoWidth||video.readyState<2)return;
+  if(video.videoWidth!==srcW||video.videoHeight!==srcH){srcW=video.videoWidth;srcH=video.videoHeight;layout();updateQual();}
+  try{
+    pv.setSource(video);
+    pv.render(comparing?NEUTRAL:P,view.width,view.height,{mirror:S.facing==='user',seed:(t*0.001)%50});
+  }catch(e){}
+}
+
+/* ---------------- Camera ---------------- */
+function stopCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;track=null;}}
+function showCamErr(msg){$('camErr').style.display='flex';$('camErrMsg').textContent=msg;}
+async function startCamera(){
+  stopCamera();$('camErr').style.display='none';
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    showCamErr('Live camera needs the app to be opened from its https:// GitHub Pages address (or the Home Screen icon).');return;
+  }
+  const hi=S.q==='max';
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:S.facing},width:{ideal:hi?4032:1920},height:{ideal:hi?3024:1440}}});
+  }catch(e){
+    try{stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:S.facing}});}
+    catch(e2){showCamErr(e2&&e2.name==='NotAllowedError'?'Camera permission was denied. On iPhone: Settings → Safari → Camera → Allow, then tap Try again.':'Couldn’t start the camera ('+(e2&&e2.name||'unknown')+').');return;}
+  }
+  track=stream.getVideoTracks()[0];
+  video.srcObject=stream;
+  try{await video.play();}catch(e){}
+  let caps={};try{caps=track.getCapabilities?track.getCapabilities():{};}catch(e){}
+  torchOK=!!caps.torch;
+  srcW=0;updateFlash();
+  setTimeout(()=>{if(mode==='live'&&video.videoWidth)makeThumbs(video,S.facing==='user');},900);
+}
+function updateQual(){
+  const mp=srcW?(srcW*srcH/1e6):0;
+  $('bQual').textContent=(S.q==='max'?'MAX':'FAST')+(mp?` · ${mp>=1?mp.toFixed(mp>=10?0:1):mp.toFixed(1)}MP`:'');
+}
+
+/* ---------------- Capture ---------------- */
+async function shoot(){
+  if(busy||mode!=='live')return;
+  if(!video.videoWidth){toast('Camera is still waking up ☕ — or use HD / Library');return;}
+  busy=true;actx();
+  const cnt=$('count');
+  for(let i=S.timer;i>0;i--){cnt.textContent=i;cnt.style.display='block';beep(false);await sleep(1000);}
+  cnt.style.display='none';
+  const fl=$('flash');let torchOn=false;
+  if(S.flash){
+    if(S.facing==='user'){fl.style.transition='none';fl.style.background='#fff8ee';fl.style.opacity=1;await sleep(380);}
+    else if(torchOK){try{await track.applyConstraints({advanced:[{torch:true}]});torchOn=true;await sleep(700);}catch(e){}}
+  }
+  const w=video.videoWidth,h=video.videoHeight;
+  const src=document.createElement('canvas');src.width=w;src.height=h;
+  const x=src.getContext('2d');
+  if(S.facing==='user'){x.translate(w,0);x.scale(-1,1);}
+  x.drawImage(video,0,0,w,h);
+  shutterSound();
+  if(torchOn){try{await track.applyConstraints({advanced:[{torch:false}]});}catch(e){}}
+  if(!(S.flash&&S.facing==='user')){fl.style.transition='none';fl.style.background='#000';fl.style.opacity=.7;}
+  requestAnimationFrame(()=>{fl.style.transition='opacity .35s';fl.style.opacity=0;});
+  enterReview(src);
+  busy=false;
+}
+
+function limits(){const m=(pv&&pv.maxTex)||4096;return {side:Math.min(m,16384),area:16000000};}
+async function loadFile(file){
+  if(!file)return;
+  toast('Developing… 🧪',1500);
+  const url=URL.createObjectURL(file);
+  try{
+    const img=new Image();
+    await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url;});
+    const w=img.naturalWidth,h=img.naturalHeight,lim=limits();
+    const s=Math.min(1,lim.side/Math.max(w,h),Math.sqrt(lim.area/(w*h)));
+    const W=Math.round(w*s),H=Math.round(h*s);
+    const c=document.createElement('canvas');c.width=W;c.height=H;
+    c.getContext('2d').drawImage(img,0,0,W,H);
+    enterReview(c);
+    if(s<1)toast(`Resized to ${W}×${H} (iPhone Safari’s max canvas size)`,3000);
+  }catch(e){toast('Couldn’t open that photo 😬');}
+  finally{URL.revokeObjectURL(url);}
+}
+
+/* ---------------- Review / edit ---------------- */
+function enterReview(c){
+  srcCanvas=c;mode='review';document.body.classList.add('review');
+  srcW=c.width;srcH=c.height;
+  pv.setSource(c);layout();
+  makeThumbs(c,false);
+  scheduleFull();
+}
+function exitReview(){
+  mode='live';document.body.classList.remove('review');
+  srcCanvas=null;outBlob=null;renderTok++;
+  if(proc){proc.c.width=1;proc.c.height=1;}
+  srcW=0;
+  if(!stream||!track||track.readyState==='ended')startCamera();
+  else setTimeout(()=>{if(mode==='live'&&video.videoWidth)makeThumbs(video,S.facing==='user');},300);
+}
+function renderReview(){if(mode!=='review'||!srcCanvas)return;pv.render(comparing?NEUTRAL:P,view.width,view.height,{seed:7});}
+function setSave(ok,msg){$('saveBtn').disabled=!ok;$('rstat').textContent=msg;}
+function scheduleFull(){
+  outBlob=null;setSave(false,'Developing full-res… 🧪');
+  clearTimeout(fullT);const tok=++renderTok;
+  fullT=setTimeout(()=>fullRender(tok),350);
+}
+function fullRender(tok){
+  if(tok!==renderTok||!srcCanvas)return;
+  try{
+    if(!proc)proc=new FX(document.createElement('canvas'),true);
+    const w=srcCanvas.width,h=srcCanvas.height;
+    proc.setSource(srcCanvas);
+    proc.render(P,w,h,{seed:7});
+    const gl=proc.gl;
+    const note=(gl.drawingBufferWidth!==w||gl.drawingBufferHeight!==h)?' (GPU-limited)':'';
+    proc.c.toBlob(b=>{
+      if(tok!==renderTok)return;
+      if(!b){setSave(false,'Hmm, that one didn’t develop. Try again?');return;}
+      outBlob=b;
+      setSave(true,`✓ ${gl.drawingBufferWidth}×${gl.drawingBufferHeight} · ${(gl.drawingBufferWidth*gl.drawingBufferHeight/1e6).toFixed(1)} MP · ready${note}`);
+    },'image/jpeg',0.95);
+  }catch(e){setSave(false,'Full-res render failed 😵 ('+e.message+')');}
+}
+function savePhoto(){
+  if(!outBlob)return;
+  const file=new File([outBlob],`EvCam_${stamp()}.jpg`,{type:'image/jpeg'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    navigator.share({files:[file]}).then(()=>{chime();toast('Done! If you tapped “Save Image”, it’s in Photos 💅');})
+      .catch(e=>{if(e&&e.name!=='AbortError')fallbackSave();});
+  }else fallbackSave();
+}
+let fbURL=null;
+function fallbackSave(){
+  if(fbURL)URL.revokeObjectURL(fbURL);
+  fbURL=URL.createObjectURL(outBlob);
+  $('fbImg').src=fbURL;$('fb').style.display='flex';
+  if(!/iPhone|iPad|iPod/.test(navigator.userAgent)){
+    const a=document.createElement('a');a.href=fbURL;a.download=`EvCam_${stamp()}.jpg`;document.body.appendChild(a);a.click();a.remove();
+  }
+}
+
+/* ---------------- Thumbnails ---------------- */
+let thumbJob=0;const thumbImgs=[];
+function makeThumbs(src,mirror){
+  try{
+    if(!thumbFx)thumbFx=new FX($('thumbCanvas'),true);
+    const sw=src.videoWidth||src.width,sh=src.videoHeight||src.height;if(!sw||!sh)return;
+    thumbFx.setSource(src);
+    const a=sw/sh,crop=a>1?[(1-1/a)/2,0,1/a,1]:[0,(1-a)/2,1,a];
+    const job=++thumbJob;let i=0;
+    const step=()=>{
+      if(job!==thumbJob)return;
+      const end=Math.min(i+6,FILTERS.length);
+      for(;i<end;i++){thumbFx.render(compose(i,1,null),112,112,{crop,mirror,seed:3});thumbImgs[i].src=thumbFx.c.toDataURL('image/jpeg',.8);}
+      if(i<FILTERS.length)requestAnimationFrame(step);
+    };
+    step();
+  }catch(e){}
+}
+
+/* ---------------- UI build ---------------- */
+function buildUI(){
+  const cats=$('cats'),strip=$('strip');
+  CATS.forEach(c=>{
+    const b=document.createElement('button');b.className='cat';b.textContent=c;b.dataset.c=c;
+    b.onclick=()=>{const i=FILTERS.findIndex((f,j)=>j>0&&f.c===c);const el=strip.children[i];catLock=Date.now()+700;setCat(c);strip.scrollTo({left:el.offsetLeft-12,behavior:'smooth'});};
+    cats.appendChild(b);
+  });
+  FILTERS.forEach((f,i)=>{
+    const b=document.createElement('button');b.className='f';
+    b.innerHTML=`<div class="th"><img alt=""></div><span>${f.n}</span>`;
+    thumbImgs[i]=b.querySelector('img');
+    b.onclick=()=>pick(i);
+    strip.appendChild(b);
+  });
+  const list=$('adjList');
+  ADJ.forEach(a=>{
+    const r=document.createElement('div');r.className='ar';
+    r.innerHTML=`<span>${a.n}</span><input type="range" min="${a.min}" max="100" value="${S.adj[a.k]||0}"><span>${S.adj[a.k]||0}</span>`;
+    const inp=r.querySelector('input'),val=r.querySelector('span:last-child');
+    setFill(inp);
+    inp.oninput=()=>{S.adj[a.k]=+inp.value;val.textContent=inp.value;setFill(inp);updateAdjDot();refreshParams();persist();};
+    inp.ondblclick=()=>{inp.value=0;inp.oninput();};
+    a.inp=inp;a.val=val;
+    list.appendChild(r);
+  });
+}
+let catLock=0;
+function setCat(c){[...$('cats').children].forEach(b=>{const on=b.dataset.c===c;b.classList.toggle('on',on);if(on){const cs=$('cats');const tgt=b.offsetLeft-cs.clientWidth/2+b.clientWidth/2;if(Math.abs(cs.scrollLeft-tgt)>40)cs.scrollTo({left:tgt,behavior:'smooth'});}});}
+function catFromScroll(){
+  if(Date.now()<catLock)return;
+  const strip=$('strip'),x=strip.scrollLeft+strip.clientWidth/2-32;
+  let idx=0;for(let i=0;i<strip.children.length;i++){if(strip.children[i].offsetLeft<=x)idx=i;else break;}
+  setCat(FILTERS[Math.max(1,idx)].c);
+}
+function syncAdjUI(){ADJ.forEach(a=>{a.inp.value=S.adj[a.k]||0;a.val.textContent=a.inp.value;setFill(a.inp);});updateAdjDot();}
+function updateAdjDot(){const has=ADJ.some(a=>S.adj[a.k]);$('bAdj').classList.toggle('has',has);$('bAdj2').classList.toggle('has',has);}
+function pick(i,quiet){
+  S.fi=i;S.k=1;
+  const r=$('intensity');r.value=100;$('intVal').textContent='100';setFill(r);
+  $('intRow').style.visibility=i===0?'hidden':'visible';
+  const strip=$('strip');
+  [...strip.children].forEach((el,j)=>el.classList.toggle('on',j===i));
+  const el=strip.children[i];
+  strip.scrollTo({left:el.offsetLeft-strip.clientWidth/2+el.clientWidth/2,behavior:quiet?'auto':'smooth'});
+  const c=FILTERS[i].c;
+  if(i>0){catLock=Date.now()+700;setCat(c);}
+  refreshParams();persist();
+  if(!quiet)showFname();
+}
+function updateFlash(){
+  const b=$('bFlash');
+  const usable=S.facing==='user'||torchOK;
+  b.classList.toggle('on',S.flash&&usable);
+  b.classList.toggle('off',!usable);
+}
+function updateTop(){
+  $('bGrid').classList.toggle('on',S.grid);document.body.classList.toggle('grid',S.grid);
+  const tt=$('timerTag');tt.style.display=S.timer?'block':'none';tt.textContent=S.timer+'s';
+  $('bTimer').classList.toggle('on',!!S.timer);
+  $('bSound').innerHTML=S.sound
+    ?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>'
+    :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 9-6 6M16 9l6 6"/></svg>';
+  updateFlash();updateQual();
+}
+
+/* ---------------- Events ---------------- */
+function bind(){
+  $('shutter').onclick=shoot;
+  $('bFlip').onclick=()=>{S.facing=S.facing==='user'?'environment':'user';persist();startCamera();};
+  $('bImport').onclick=()=>{$('fileImport').value='';$('fileImport').click();};
+  $('bHD').onclick=()=>{const f=$('fileHD');f.setAttribute('capture',S.facing==='user'?'user':'environment');f.value='';f.click();};
+  $('fileImport').onchange=e=>loadFile(e.target.files[0]);
+  $('fileHD').onchange=e=>loadFile(e.target.files[0]);
+  $('bRetry').onclick=startCamera;
+  $('bFlash').onclick=()=>{
+    if(S.facing!=='user'&&!torchOK){toast('Safari won’t let me touch the rear flash 😤 — tap HD to use the real iPhone camera + flash',3500);return;}
+    S.flash=!S.flash;persist();updateFlash();toast(S.flash?(S.facing==='user'?'Selfie flash ON — your screen becomes a ring light 💡':'Flash ON ⚡'):'Flash off');
+  };
+  $('bTimer').onclick=()=>{S.timer=S.timer===0?3:S.timer===3?10:0;persist();updateTop();toast(S.timer?`${S.timer}-second timer — strike a pose ⏱️`:'Timer off');};
+  $('bGrid').onclick=()=>{S.grid=!S.grid;persist();updateTop();};
+  $('bSound').onclick=()=>{S.sound=!S.sound;persist();updateTop();toast(S.sound?'Sounds on 🔊':'Stealth mode 🤫');};
+  $('bQual').onclick=()=>{
+    if(mode!=='live')return;
+    S.q=S.q==='max'?'fast':'max';persist();updateQual();startCamera();
+    toast(S.q==='max'?'MAX: highest camera resolution Safari allows 📸':'FAST: lighter preview for smoother live filters 🏎️',3000);
+  };
+  $('bRetake').onclick=exitReview;
+  $('saveBtn').onclick=savePhoto;
+  $('fbDone').onclick=()=>{$('fb').style.display='none';};
+  const setAdj=o=>{$('adj').classList.toggle('open',o);$('bAdj').classList.toggle('on',o);$('bAdj2').classList.toggle('on',o);};
+  $('bAdj').onclick=()=>setAdj(!$('adj').classList.contains('open'));
+  $('bAdj2').onclick=()=>setAdj(!$('adj').classList.contains('open'));
+  $('bDone').onclick=()=>setAdj(false);
+  let catST=0;$('strip').addEventListener('scroll',()=>{clearTimeout(catST);catST=setTimeout(catFromScroll,60);},{passive:true});
+  // Reliable tap feedback on iPhone (Safari ignores :active without this)
+  document.addEventListener('touchstart',()=>{},{passive:true});
+  let pressedEl=null;
+  const clearPress=()=>{if(pressedEl){const el=pressedEl;pressedEl=null;setTimeout(()=>el.classList.remove('pressed'),90);}};
+  document.addEventListener('pointerdown',e=>{const b=e.target.closest('button');if(b&&!b.disabled){clearPress();pressedEl=b;b.classList.add('pressed');}},true);
+  ['pointerup','pointercancel'].forEach(t=>document.addEventListener(t,clearPress,true));
+  document.addEventListener('scroll',clearPress,true);
+  $('bReset').onclick=()=>{S.adj={};syncAdjUI();refreshParams();persist();};
+  $('bAuto').onclick=()=>{S.adj=Object.assign({},S.adj,{con:25,sat:10,sharp:30,sh:30,hi:-20,bri:5,clar:20});syncAdjUI();refreshParams();persist();toast('Auto-enhanced ✨ (you’re welcome)');};
+  const ir=$('intensity');
+  ir.oninput=()=>{S.k=ir.value/100;$('intVal').textContent=ir.value;setFill(ir);refreshParams();persist();};
+
+  // viewfinder: hold = compare with original, swipe = next/prev filter
+  let pd=null;
+  vf.addEventListener('pointerdown',e=>{
+    actx();
+    pd={x:e.clientX,y:e.clientY,moved:false,t:setTimeout(()=>{comparing=true;$('hint').style.display='block';renderReview();},220)};
+  });
+  vf.addEventListener('pointermove',e=>{if(pd&&!pd.moved&&Math.hypot(e.clientX-pd.x,e.clientY-pd.y)>12){pd.moved=true;clearTimeout(pd.t);}});
+  const up=e=>{
+    if(!pd)return;clearTimeout(pd.t);
+    if(comparing){comparing=false;$('hint').style.display='none';renderReview();}
+    else{
+      const th=rot*Math.PI/180,dx=e.clientX-pd.x,dy=e.clientY-pd.y;
+      const ax=dx*Math.cos(th)+dy*Math.sin(th),ay=-dx*Math.sin(th)+dy*Math.cos(th);
+      if(Math.abs(ax)>50&&Math.abs(ax)>Math.abs(ay)*1.3){
+        const n=FILTERS.length,i=(S.fi+(ax<0?1:-1)+n)%n;pick(i);
+      }
+    }
+    pd=null;
+  };
+  vf.addEventListener('pointerup',up);vf.addEventListener('pointercancel',up);
+
+  window.addEventListener('resize',orient);
+  window.addEventListener('orientationchange',()=>setTimeout(orient,120));
+  if(screen.orientation&&screen.orientation.addEventListener)screen.orientation.addEventListener('change',()=>setTimeout(orient,120));
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'&&mode==='live'&&(!track||track.readyState==='ended'))startCamera();
+  });
+  document.addEventListener('gesturestart',e=>e.preventDefault());
+}
+
+/* ---------------- Init ---------------- */
+function init(){
+  buildUI();bind();updateTop();syncAdjUI();
+  try{pv=new FX(view,false);}catch(e){showCamErr('This browser can’t run WebGL, which EvCam needs for filters 😢');}
+  orient();
+  const k0=(S.k>=0&&S.k<=1)?S.k:1;
+  pick(S.fi,true);
+  S.k=k0;const r=$('intensity');r.value=Math.round(k0*100);$('intVal').textContent=r.value;setFill(r);refreshParams();
+  if(pv)startCamera();
+  requestAnimationFrame(loop);
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+init();
+</script>
+</body>
+</html>
