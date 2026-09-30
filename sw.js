@@ -1,6 +1,6 @@
 // EvCam service worker — makes the app work offline.
 // Bump the version number whenever you upload new files so iPhones grab the update.
-const CACHE = 'evcam-v3';
+const CACHE = 'evcam-v5';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
